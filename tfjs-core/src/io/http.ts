@@ -21,13 +21,13 @@
  * Uses [`fetch`](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API).
  */
 
-import {env} from '../environment';
+import { env } from '../environment';
 
-import {assert} from '../util';
-import {concatenateArrayBuffers, getModelArtifactsInfoForJSON} from './io_utils';
-import {IORouter, IORouterRegistry} from './router_registry';
-import {IOHandler, LoadOptions, ModelArtifacts, ModelJSON, OnProgressCallback, SaveResult, WeightsManifestConfig, WeightsManifestEntry} from './types';
-import {loadWeightsAsArrayBuffer} from './weights_loader';
+import { assert } from '../util';
+import { concatenateArrayBuffers, getModelArtifactsInfoForJSON } from './io_utils';
+import { IORouter, IORouterRegistry } from './router_registry';
+import { IOHandler, LoadOptions, ModelArtifacts, ModelJSON, OnProgressCallback, SaveResult, WeightsManifestConfig, WeightsManifestEntry } from './types';
+import { loadWeightsAsArrayBuffer } from './weights_loader';
 
 const OCTET_STREAM_MIME_TYPE = 'application/octet-stream';
 const JSON_TYPE = 'application/json';
@@ -55,32 +55,32 @@ export class HTTPRequest implements IOHandler {
 
     if (loadOptions.fetchFunc != null) {
       assert(
-          typeof loadOptions.fetchFunc === 'function',
-          () => 'Must pass a function that matches the signature of ' +
-              '`fetch` (see ' +
-              'https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)');
+        typeof loadOptions.fetchFunc === 'function',
+        () => 'Must pass a function that matches the signature of ' +
+          '`fetch` (see ' +
+          'https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)');
       this.fetch = loadOptions.fetchFunc;
     } else {
       this.fetch = env().platform.fetch;
     }
 
     assert(
-        path != null && path.length > 0,
-        () => 'URL path for http must not be null, undefined or ' +
-            'empty.');
+      path != null && path.length > 0,
+      () => 'URL path for http must not be null, undefined or ' +
+        'empty.');
 
     if (Array.isArray(path)) {
       assert(
-          path.length === 2,
-          () => 'URL paths for http must have a length of 2, ' +
-              `(actual length is ${path.length}).`);
+        path.length === 2,
+        () => 'URL paths for http must have a length of 2, ' +
+          `(actual length is ${path.length}).`);
     }
     this.path = path;
 
     if (loadOptions.requestInit != null &&
-        loadOptions.requestInit.body != null) {
+      loadOptions.requestInit.body != null) {
       throw new Error(
-          'requestInit is expected to have no pre-existing body, but has one.');
+        'requestInit is expected to have no pre-existing body, but has one.');
     }
     this.requestInit = loadOptions.requestInit || {};
   }
@@ -88,11 +88,11 @@ export class HTTPRequest implements IOHandler {
   async save(modelArtifacts: ModelArtifacts): Promise<SaveResult> {
     if (modelArtifacts.modelTopology instanceof ArrayBuffer) {
       throw new Error(
-          'BrowserHTTPRequest.save() does not support saving model topology ' +
-          'in binary formats yet.');
+        'BrowserHTTPRequest.save() does not support saving model topology ' +
+        'in binary formats yet.');
     }
 
-    const init = Object.assign({method: this.DEFAULT_METHOD}, this.requestInit);
+    const init = Object.assign({ method: this.DEFAULT_METHOD }, this.requestInit);
     init.body = new FormData();
 
     const weightsManifest: WeightsManifestConfig = [{
@@ -111,25 +111,25 @@ export class HTTPRequest implements IOHandler {
     }
     if (modelArtifacts.userDefinedMetadata != null) {
       modelTopologyAndWeightManifest.userDefinedMetadata =
-          modelArtifacts.userDefinedMetadata;
+        modelArtifacts.userDefinedMetadata;
     }
     if (modelArtifacts.modelInitializer != null) {
       modelTopologyAndWeightManifest.modelInitializer =
-          modelArtifacts.modelInitializer;
+        modelArtifacts.modelInitializer;
     }
 
     init.body.append(
-        'model.json',
-        new Blob(
-            [JSON.stringify(modelTopologyAndWeightManifest)],
-            {type: JSON_TYPE}),
-        'model.json');
+      'model.json',
+      new Blob(
+        [JSON.stringify(modelTopologyAndWeightManifest)],
+        { type: JSON_TYPE }),
+      'model.json');
 
     if (modelArtifacts.weightData != null) {
       init.body.append(
-          'model.weights.bin',
-          new Blob([modelArtifacts.weightData], {type: OCTET_STREAM_MIME_TYPE}),
-          'model.weights.bin');
+        'model.weights.bin',
+        new Blob([modelArtifacts.weightData], { type: OCTET_STREAM_MIME_TYPE }),
+        'model.weights.bin');
     }
 
     const response = await this.fetch(this.path, init);
@@ -141,8 +141,8 @@ export class HTTPRequest implements IOHandler {
       };
     } else {
       throw new Error(
-          `BrowserHTTPRequest.save() failed due to HTTP response status ` +
-          `${response.status}.`);
+        `BrowserHTTPRequest.save() failed due to HTTP response status ` +
+        `${response.status}.`);
     }
   }
 
@@ -159,9 +159,9 @@ export class HTTPRequest implements IOHandler {
 
     if (!modelConfigRequest.ok) {
       throw new Error(
-          `Request to ${this.path} failed with status code ` +
-          `${modelConfigRequest.status}. Please verify this URL points to ` +
-          `the model JSON of the model to load.`);
+        `Request to ${this.path} failed with status code ` +
+        `${modelConfigRequest.status}. Please verify this URL points to ` +
+        `the model JSON of the model to load.`);
     }
     let modelConfig: ModelJSON;
     try {
@@ -172,14 +172,14 @@ export class HTTPRequest implements IOHandler {
       // .pb files are mostly gone.
       if (this.path.endsWith('.pb')) {
         message += ' Your path contains a .pb file extension. ' +
-            'Support for .pb models have been removed in TensorFlow.js 1.0 ' +
-            'in favor of .json models. You can re-convert your Python ' +
-            'TensorFlow model using the TensorFlow.js 1.0 conversion scripts ' +
-            'or you can convert your.pb models with the \'pb2json\'' +
-            'NPM script in the tensorflow/tfjs-converter repository.';
+          'Support for .pb models have been removed in TensorFlow.js 1.0 ' +
+          'in favor of .json models. You can re-convert your Python ' +
+          'TensorFlow model using the TensorFlow.js 1.0 conversion scripts ' +
+          'or you can convert your.pb models with the \'pb2json\'' +
+          'NPM script in the tensorflow/tfjs-converter repository.';
       } else {
         message += ' Please make sure the server is serving valid ' +
-            'JSON for this request.';
+          'JSON for this request.';
       }
       throw new Error(message);
     }
@@ -194,8 +194,8 @@ export class HTTPRequest implements IOHandler {
     // We do not allow both modelTopology and weightsManifest to be missing.
     if (modelTopology == null && weightsManifest == null) {
       throw new Error(
-          `The JSON from HTTP path ${this.path} contains neither model ` +
-          `topology or manifest for weights.`);
+        `The JSON from HTTP path ${this.path} contains neither model ` +
+        `topology or manifest for weights.`);
     }
 
     let weightSpecs: WeightsManifestEntry[];
@@ -230,7 +230,7 @@ export class HTTPRequest implements IOHandler {
   }
 
   private async loadWeights(weightsManifest: WeightsManifestConfig):
-      Promise<[WeightsManifestEntry[], ArrayBuffer]> {
+    Promise<[WeightsManifestEntry[], ArrayBuffer]> {
     const weightPath = Array.isArray(this.path) ? this.path[1] : this.path;
     const [prefix, suffix] = parseUrl(weightPath);
     const pathPrefix = this.weightPathPrefix || prefix;
@@ -252,8 +252,14 @@ export class HTTPRequest implements IOHandler {
       }
     }
 
+    /**
+     * @description to prevent issue during build spread await -> refactor
+     */
     if (this.weightUrlConverter) {
-      fetchURLs.push(...await Promise.all(urlPromises));
+      // fetchURLs.push(...await Promise.all(urlPromises));
+
+      await Promise.all(urlPromises)
+        .then(results => fetchURLs.push(...results));
     }
 
     const buffers = await loadWeightsAsArrayBuffer(fetchURLs, {
@@ -281,7 +287,7 @@ export function parseUrl(url: string): [string, string] {
   const lastSearchParam = url.lastIndexOf('?');
   const prefix = url.substring(0, lastSlash);
   const suffix =
-      lastSearchParam > lastSlash ? url.substring(lastSearchParam) : '';
+    lastSearchParam > lastSlash ? url.substring(lastSearchParam) : '';
   return [prefix + '/', suffix];
 }
 
@@ -290,26 +296,26 @@ export function isHTTPScheme(url: string): boolean {
 }
 
 export const httpRouter: IORouter =
-    (url: string, loadOptions?: LoadOptions) => {
-      if (typeof fetch === 'undefined' &&
-          (loadOptions == null || loadOptions.fetchFunc == null)) {
-        // `http` uses `fetch` or `node-fetch`, if one wants to use it in
-        // an environment that is not the browser or node they have to setup a
-        // global fetch polyfill.
-        return null;
-      } else {
-        let isHTTP = true;
-        if (Array.isArray(url)) {
-          isHTTP = url.every(urlItem => isHTTPScheme(urlItem));
-        } else {
-          isHTTP = isHTTPScheme(url);
-        }
-        if (isHTTP) {
-          return http(url, loadOptions);
-        }
-      }
+  (url: string, loadOptions?: LoadOptions) => {
+    if (typeof fetch === 'undefined' &&
+      (loadOptions == null || loadOptions.fetchFunc == null)) {
+      // `http` uses `fetch` or `node-fetch`, if one wants to use it in
+      // an environment that is not the browser or node they have to setup a
+      // global fetch polyfill.
       return null;
-    };
+    } else {
+      let isHTTP = true;
+      if (Array.isArray(url)) {
+        isHTTP = url.every(urlItem => isHTTPScheme(urlItem));
+      } else {
+        isHTTP = isHTTPScheme(url);
+      }
+      if (isHTTP) {
+        return http(url, loadOptions);
+      }
+    }
+    return null;
+  };
 IORouterRegistry.registerSaveRouter(httpRouter);
 IORouterRegistry.registerLoadRouter(httpRouter);
 
@@ -393,6 +399,6 @@ export function http(path: string, loadOptions?: LoadOptions): IOHandler {
  * @param loadOptions
  */
 export function browserHTTPRequest(
-    path: string, loadOptions?: LoadOptions): IOHandler {
+  path: string, loadOptions?: LoadOptions): IOHandler {
   return http(path, loadOptions);
 }
