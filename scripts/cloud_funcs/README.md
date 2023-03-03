@@ -1,27 +1,27 @@
 This directory contains the following Google Cloud Functions.
 
 ### `trigger_nightly`
-Programatically triggers a Cloud Build on master. This function is called by the Cloud Scheduler around 4am "America/New York" time every day (configurable via the Cloud Scheduler UI).
+Programatically triggers a Cloud Build on master. This function is called by the Cloud Scheduler at 3am EST every day (configurable via the Cloud Scheduler UI).
 You can also trigger the function manually via the Cloud UI.
 
 Command to re-deploy:
 ```sh
-gcloud functions deploy nightly_tfjs \
-  --runtime nodejs14 \
-  --trigger-topic nightly_tfjs
+gcloud functions deploy nightly \
+  --runtime nodejs8 \
+  --trigger-topic nightly
 ```
 
 If a build was triggered by nightly, there is a substitution variable `_NIGHTLY=true`.
-You can forward the substitution as the `NIGHTLY` environment variable so the scripts can use it, by specifying `env: ['NIGHTLY=$_NIGHTLY']` in `cloudbuild.yml`. E.g. `integration_tests/benchmarks/benchmark_cloud.sh` uses the `NIGHTLY` bit to always run on nightly.
+You can forward the substitution as the `NIGHTLY` environment variable so the scripts can use it, by specifying `env: ['NIGHTLY=$_NIGHTLY']` in `cloudbuild.yml`.
 
 ### `send_email`
-Sends an email and a chat message with the nightly build status. Every build sends a message to the `cloud-builds` topic with its build information. The `send_email` function is subscribed to that topic and ignores all builds (e.g. builds triggered by pull requests) **except** for the nightly build and sends an email to an internal mailing list with its build status around 4:40am.
+Sends an email and a chat message with the nightly build status. Every build sends a message to the `cloud-builds` topic with its build information. The `send_email` function is subscribed to that topic and ignores all builds (e.g. builds triggered by pull requests) **except** for the nightly build and sends an email to an internal mailing list with its build status around 3:10am.
 
 Command to re-deploy:
 
 ```sh
 gcloud functions deploy send_email \
-  --runtime nodejs14 \
+  --runtime nodejs8 \
   --stage-bucket learnjs-174218_cloudbuild \
   --trigger-topic cloud-builds \
   --set-env-vars MAILGUN_API_KEY="[API_KEY_HERE]",HANGOUTS_URL="[URL_HERE]"
@@ -35,7 +35,7 @@ Command to re-deploy:
 
 ```sh
 gcloud functions deploy sync_reactnative \
-  --runtime nodejs14 \
+  --runtime nodejs8 \
   --trigger-topic sync_reactnative \
   --set-env-vars HANGOUTS_URL="[URL_HERE]",BOTS_HANGOUTS_URL="[URL_HERE]"
 ```
@@ -44,7 +44,7 @@ gcloud functions deploy sync_reactnative \
 
 The pipeline looks like this:
 
-1) At 4am, Cloud Scheduler writes to `nightly_tfjs` topic
-2) That triggers the `nightly_tfjs` function, which starts a build programatically
+1) At 3am, Cloud Scheduler writes to `nightly` topic
+2) That triggers the `nightly` function, which starts a build programatically
 3) That build runs and writes its status to `cloud-builds` topic
 4) That triggers the `send_email` function, which sends email and chat with the build status.

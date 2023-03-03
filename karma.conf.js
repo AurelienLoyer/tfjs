@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2021 Google LLC. All Rights Reserved.
+ * Copyright 2017 Google LLC. All Rights Reserved.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,21 +15,97 @@
  * =============================================================================
  */
 
-const browserstackConfig = {
-  hostname: 'bs-local.com',
-  reporters: ['dots'],
-  port: 9896,
+const karmaTypescriptConfig = {
+  tsconfig: 'tsconfig.test.json',
+  // Disable coverage reports and instrumentation by default for tests
+  coverageOptions: {instrumentation: false},
+  reports: {},
+  bundlerOptions: {sourceMap: false}
 };
 
+// Enable coverage reports and instrumentation under KARMA_COVERAGE=1 env
+const coverageEnabled = !!process.env.KARMA_COVERAGE;
+if (coverageEnabled) {
+  karmaTypescriptConfig.coverageOptions.instrumentation = true;
+  karmaTypescriptConfig.coverageOptions.exclude = /_test\.ts$/;
+  karmaTypescriptConfig.reports = {html: 'coverage', 'text-summary': ''};
+}
+
+const devConfig = {
+  frameworks: ['jasmine', 'karma-typescript'],
+  files: ['src/setup_test.ts', {pattern: 'src/**/*.ts'}],
+  exclude: [
+    'src/tests.ts',
+    'src/worker_node_test.ts',
+    'src/worker_test.ts',
+    'src/test_node.ts',
+    'src/test_async_backends.ts',
+  ],
+  preprocessors: {'**/*.ts': ['karma-typescript']},
+  karmaTypescriptConfig,
+  reporters: ['dots', 'karma-typescript']
+};
+
+const browserstackConfig = {
+  ...devConfig,
+  hostname: 'bs-local.com',
+  singleRun: true,
+  port: 9896
+};
+
+const webworkerConfig = {
+  ...browserstackConfig,
+  files: [
+    {pattern: 'src/setup_test.ts'},
+    {pattern: 'src/worker_test.ts'},
+    // Include src files for core, except for the tests
+    {pattern: 'src/**/!(*_test).ts'},
+    // Serve dist/tf-core.min.js and tf-backend-cpu.min.js as a static
+    // resource, but do not include in the test runner
+    {pattern: 'dist/tf-core.min.js', included: false, served: true},
+    {pattern: 'dist/tf-backend-cpu.min.js', included: false, served: true},
+  ],
+  exclude: [
+    'src/tests.ts',
+    'src/test_node.ts',
+    'src/test_async_backends.ts',
+  ],
+  port: 12345
+};
 
 module.exports = function(config) {
+  const args = [];
+  // If no test environment is set unit tests will run against all
+  // registered test environments.
+  if (config.testEnv) {
+    args.push('--testEnv', config.testEnv);
+  }
+  if (config.grep) {
+    args.push('--grep', config.grep);
+  }
+  if (config.flags) {
+    args.push('--flags', config.flags);
+  }
+
+  let extraConfig = null;
+
+  if (config.worker) {
+    extraConfig = webworkerConfig;
+  } else if (config.browserstack) {
+    extraConfig = browserstackConfig;
+  } else {
+    extraConfig = devConfig;
+  }
+
+
   config.set({
-    ...browserstackConfig,
+    ...extraConfig,
+    browsers: ['Chrome'],
     browserStack: {
       username: process.env.BROWSERSTACK_USERNAME,
       accessKey: process.env.BROWSERSTACK_KEY,
       tunnelIdentifier:
-      `tfjs_${Date.now()}_${Math.floor(Math.random() * 1000)}`
+          `tfjs_union_${Date.now()}_${Math.floor(Math.random() * 1000)}`
     },
     captureTimeout: 3e5,
     reportSlowerThan: 500,
@@ -37,7 +113,6 @@ module.exports = function(config) {
     browserDisconnectTimeout: 3e5,
     browserDisconnectTolerance: 3,
     browserSocketTimeout: 1.2e5,
-    browsers: ['bs_chrome_mac'],
     customLaunchers: {
       // For browserstack configs see:
       // https://www.browserstack.com/automate/node
@@ -90,7 +165,8 @@ module.exports = function(config) {
         flags: ['--blacklist-accelerated-compositing', '--blacklist-webgl']
       },
       chrome_debugging:
-      {base: 'Chrome', flags: ['--remote-debugging-port=9333']}
-    }
+          {base: 'Chrome', flags: ['--remote-debugging-port=9333']}
+    },
+    client: {jasmine: {random: false}, args: args}
   });
-}
+};
